@@ -3,6 +3,7 @@
 ## 1.6.0
 
 - Add swipe over the D-pad to navigate, via a two-finger trackpad swipe or a Magic Mouse swipe, matching the iOS app; direction follows your finger regardless of the natural scrolling setting
+- Click the menu bar icon to open your last connected remote directly when none is open; right-click still shows the menu
 
 ## 1.5.4
 

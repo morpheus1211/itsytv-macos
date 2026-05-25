@@ -99,9 +99,41 @@ final class AppController: NSObject, NSMenuDelegate {
                 icon.size = NSSize(width: 18, height: 18)
                 button.image = icon
             }
+            // Handle clicks ourselves instead of attaching the menu permanently:
+            // a left-click while the remote is closed jumps straight to the last
+            // device; right-click (or any click with the remote open) shows the menu.
+            button.target = self
+            button.action = #selector(statusItemClicked)
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
-        statusItem.menu = menu
         menu.delegate = self
+    }
+
+    @objc private func statusItemClicked() {
+        let event = NSApp.currentEvent
+        let wantsMenu = event?.type == .rightMouseUp
+            || event?.modifierFlags.contains(.control) == true
+
+        // Remote closed + a reachable, paired last device → open it directly.
+        // Everything else (remote open, right-click, no/unreachable last device)
+        // falls back to the dropdown, as before.
+        if !wantsMenu,
+           panel?.isVisible != true,
+           case .disconnected = manager.connectionStatus,
+           let lastID = manager.lastConnectedDeviceID,
+           KeychainStorage.load(for: lastID) != nil,
+           manager.discoveredDevices.contains(where: { $0.id == lastID }) {
+            openRemote(for: lastID)
+        } else {
+            showMenu()
+        }
+    }
+
+    /// Pop the status menu by temporarily attaching it, then detach on close
+    /// (see `menuDidClose`) so the next click routes back to `statusItemClicked`.
+    private func showMenu() {
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
     }
 
     private func startObserving() {
@@ -622,6 +654,12 @@ final class AppController: NSObject, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         manager.refreshScanning()
         rebuildMenu()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        // Detach so the next status-item click routes to `statusItemClicked`
+        // rather than re-opening the menu automatically.
+        statusItem.menu = nil
     }
 }
 
