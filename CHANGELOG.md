@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+- Add swipe over the D-pad to navigate, via a two-finger trackpad swipe or a Magic Mouse swipe, matching the iOS app; direction follows your finger regardless of the natural scrolling setting
+
 ## 1.5.4
 
 - Add AppleScript `play` and `pause` verbs so automation tools (Hammerspoon, Keyboard Maestro, Shortcuts, `osascript`) can control playback idempotently without resuming a quiet TV (thanks @aporzio1)
