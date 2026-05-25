@@ -163,12 +163,23 @@ struct RemoteControlView: View {
             if status == .connected {
                 withAnimation { showUnpairHint = false }
             } else if case .connecting = status {
-                showUnpairHint = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                    if !isConnected {
-                        withAnimation { showUnpairHint = true }
-                    }
-                }
+                scheduleUnpairHint()
+            }
+        }
+        .onAppear {
+            // The panel is created while the status is already `.connecting`, so
+            // `onChange` never sees that initial value — arm the hint here too so
+            // a stuck connection reliably surfaces the unpair option.
+            if !isConnected { scheduleUnpairHint() }
+        }
+    }
+
+    /// Reset and (re)arm the 5-second "Taking too long?" unpair hint.
+    private func scheduleUnpairHint() {
+        showUnpairHint = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            if !isConnected {
+                withAnimation { showUnpairHint = true }
             }
         }
     }
@@ -1042,6 +1053,19 @@ struct ErrorView: View {
                 manager.disconnect()
             }
             .buttonStyle(.borderedProminent)
+
+            // A pair-verify failure means the Apple TV no longer recognizes our
+            // credentials (e.g. it was reset). Offer the unpair the message asks
+            // for — Dismiss alone would leave the dead pairing in place.
+            Button("Unpair this Apple TV") {
+                if let deviceID = manager.connectedDeviceID {
+                    KeychainStorage.delete(for: deviceID)
+                }
+                manager.disconnect()
+            }
+            .font(.caption)
+            .foregroundStyle(.red)
+            .buttonStyle(.plain)
         }
         .padding(24)
     }
